@@ -1,6 +1,7 @@
-import express, { urlencoded } from 'express'
+// import express, { urlencoded } from 'express'
+import express from 'express'
 import cors from "cors"
-import cookieParser from 'cookie-parser'
+import cookieParser from 'cookieParser'
 
 const app = express()
 
