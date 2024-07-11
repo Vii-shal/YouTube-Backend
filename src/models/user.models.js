@@ -47,19 +47,31 @@ const userSchema = new Schema({
     }
 
 
-
-
 },{timestamps:true})
 
-userSchema.pre("save",async function(next){
-    if (!this.isModified("password")) return;
-    this.password = await bcrypt.hash(this.password,10)
-    next()
-})
+userSchema.pre("save", async function(next) {
+    if (!this.isModified("password")) return next();
+    try {
+        this.password = await bcrypt.hash(this.password, 10);
+        next();
+    } catch (err) {
+        next(err);
+    }
+});
 
 userSchema.methods.isPasswordCorrect = async function(password){
-    return await bcrypt.compare(password,this.password)
+    // return await bcrypt.compare(password,this.password)
+    try {
+        console.log(password,"***",this.password)
+        // console.log(bcrypt.compare(password, this.password))
+        const isMatch = await bcrypt.compare(password, this.password);
+        console.log(password,"***",isMatch)
+        return isMatch;
+    } catch (error) {
+        throw new Error('Error while comparing passwords');
+    }
 }
+
 
 userSchema.methods.generateAccessToken = function(){
     return jwt.sign(
