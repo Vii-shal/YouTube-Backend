@@ -4,6 +4,7 @@ import { User } from "../models/user.models.js"
 import uploadOnCloudinary from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 const generateAccessAndRefreshTokens = async(userId)=>{
     try {
@@ -13,6 +14,8 @@ const generateAccessAndRefreshTokens = async(userId)=>{
 
         user.refreshToken = refreshToken
         await user.save({validateBeforeSave: false})
+
+        // console.log(accessToken,"<<<**000**>>>",refreshToken)
 
         return {accessToken , refreshToken}
 
@@ -150,6 +153,7 @@ const loginUser = asyncHandler( async(req,res)=>{
 
 
     const { accessToken,refreshToken } = await generateAccessAndRefreshTokens(user._id)
+    // console.log(accessToken,"<<<>>>",refreshToken)
 
 
     const loggedInUser = await User.findById(user._id).select('-password -refreshToken')
@@ -185,8 +189,11 @@ const logoutUser = asyncHandler( async(req,res)=>{
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set:{
-                refreshToken : undefined
+            // $set:{
+            //     refreshToken : undefined
+            // }
+            $unset:{
+                refreshToken : 1  // this removes field from document
             }
         },
         {
@@ -212,12 +219,14 @@ const refreshAccessToken = asyncHandler(async (req,res)=>{
     if (!incomingRefreshToken){
         throw new ApiError(401,"unauthorized request")
     }
-try {
+    console.log(incomingRefreshToken,"->->->->")
+// try {
     
         const decodedToken = jwt.verify(
             incomingRefreshToken,
             process.env.REFRESH_TOKEN_SECRET
         )
+        console.log(decodedToken,"----")
     
         const user =   await User.findById(decodedToken?._id)
     
@@ -226,30 +235,31 @@ try {
         }
     
         if (incomingRefreshToken !== user?.refreshToken){
-            throw new ApiError(401,"Refresh token is expired or user")
+            throw new ApiError(401,"Refresh token is expired or used")
         }
     
         const options = {
             httpOnly: true,
             secure:true,
         }
-        const {accessToken ,newRefreshToken} = await generateAccessAndRefreshTokens(user._id)
+        const {accessToken ,refreshToken} = await generateAccessAndRefreshTokens(user._id)
+        console.log(accessToken,"<<<>>>",refreshToken)
     
         return res
         .status(200)
         .cookie("accessToken",accessToken,options)
-        .cookie("refreshToken",newRefreshToken,options)
+        .cookie("refreshToken",refreshToken,options)
         .json(
             new ApiResponse(
                 200,
-                {accessToken,refreshToken : newRefreshToken},
+                {accessToken,refreshToken},
                 "access token refreshed")
         )
     
-} catch (error) {
-    throw new ApiError(401,"not valid refresh token")
+// } catch (error) {
+//     throw new ApiError(401,"not valid refresh token")
     
-}
+// }
 })
 
 const changeCurrentPassword = asyncHandler( async (req,res)=>{
@@ -282,8 +292,8 @@ const updateAccountDetails = asyncHandler( async (req,res)=>{
     if (!fullName || !email){
         throw new ApiError(400,"all field are required")
     }
-
-    const user = User.findByIdAndUpdate(
+    
+    const user = await User.findByIdAndUpdate(
         req.user?._id,
         {   
             $set: {
@@ -295,6 +305,8 @@ const updateAccountDetails = asyncHandler( async (req,res)=>{
         {new:true}
     ).select("-password")
 
+    console.log(user.fullName , user.email)
+    
     return res
     .status(200)
     .json(new ApiResponse(200,user,"Account details  updated"))
@@ -312,7 +324,7 @@ const updateUserAvatar = asyncHandler( async(req,res)=>{
         throw new ApiError(400,"Error while uploading avatar to cloudinary")
     }
 
-    const user = User.findByIdAndUpdate(
+    const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set: {
@@ -342,7 +354,7 @@ const updateUserCoverImage = asyncHandler( async(req,res)=>{
         throw new ApiError(400,"Error while uploading cover image to cloudinary")
     }
 
-    const user = User.findByIdAndUpdate(
+    const user = await User.findByIdAndUpdate(
         req.user?._id,
         {
             $set: {
@@ -364,6 +376,7 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
     if (!username?.trim()){
         throw new ApiError(400,"username is missing")
     }
+    console.log(username)
 
     const channel = await User.aggregate([
         {

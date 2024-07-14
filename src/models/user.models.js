@@ -65,7 +65,7 @@ userSchema.methods.isPasswordCorrect = async function(password){
         console.log(password,"***",this.password)
         // console.log(bcrypt.compare(password, this.password))
         const isMatch = await bcrypt.compare(password, this.password);
-        console.log(password,"***",isMatch)
+        // console.log(password,"***",isMatch)
         return isMatch;
     } catch (error) {
         throw new Error('Error while comparing passwords');

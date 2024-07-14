@@ -6,6 +6,7 @@ import {
     getWatchHistory, 
     loginUser, 
     logoutUser, 
+    refreshAccessToken, 
     registerUser, 
     updateAccountDetails, 
     updateUserAvatar, 
@@ -34,7 +35,7 @@ router.route('/login').post(loginUser)
 
 // secured routes
 router.route('/logout').post(verifyJWT,logoutUser)
-router.route('/refresh-token').post(logoutUser)
+router.route('/refresh-token').post(refreshAccessToken)
 
 router.route('/change-password').post(verifyJWT,changeCurrentPassword)
 router.route('/current-user').get(verifyJWT,getCurrentUser)        // get -> as user is not sending any data in this
